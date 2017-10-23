@@ -38,12 +38,9 @@ void launch_on_gpu() {
     cudaFree(d_b);
     cudaFree(d_c);
 
-    /*
-    for (auto i=0; i<NUM_VALUES; i++) {
-        printf("%d::%d ", i, h_c[i]);
-        if (i%10==0) printf("\n");
+    for (auto i=0; i<10; i++) {
+        printf("c[%d] = %d\n", i, h_c[i]);
     }
-    */
 
     printf("\n");
     printf("stop launch_on_gpu\n");
