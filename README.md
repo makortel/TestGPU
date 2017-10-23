@@ -14,4 +14,8 @@
 - git clone https://github.com/vkhristenko/TestGPU
 - scram b -v -j 8
 
+__A few warnings are expected__
 
+## Dummy Test
+- Launch `cmsRun TestGPU/Dummy/python/test_gpu.py`
+- 

@@ -18,7 +18,7 @@ process.MessageLogger = cms.Service("MessageLogger",
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 
 pathToFiles = "root://eoscms.cern.ch//eos/cms/store/data/Run2016H/SingleMuon/MINIAOD/03Feb2017_ver2-v1/80000/"
-pathToFiles = "file:/afs/cern.ch/work/v/vkhriste/data/cmssw/test"
+pathToFiles = "file:/afs/cern.ch/work/v/vkhriste/public/data/cmssw/test"
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
