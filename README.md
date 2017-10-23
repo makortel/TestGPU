@@ -1,4 +1,4 @@
-# TestGPU - test gpu workflows within cmssw
+# TestGPU - test Cuda GPU workflows within cmssw
 
 ## Requirements 
 - machine with GPU (should be compilable though...)
