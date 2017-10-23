@@ -2,3 +2,7 @@
 
 <bin name="standalone_test0" file="test0.cu">
 </bin>
+
+<bin name="standalone_test1" file="test1.cu">
+    <use name="TestGPU/Dummy"/>
+</bin>

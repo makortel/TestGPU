@@ -11,7 +11,7 @@
 - scram b -v -j 8
 
 ## Dummy Standalone Test
-- Execute standalone\_test0 (available in the PATH)
+- Execute `standalone_test0` (available in the PATH)
 - 2 Vector Addition
 - Output should show first 10 elements:
 ```
@@ -54,3 +54,7 @@ c[7] = 56
 c[8] = 72
 c[9] = 90
 ```
+
+## Dummy Standalone that uses the same kernel as CMSSW EDAnalyzer
+- Execute `standalone_test1`
+- The output should be identical to the above... but printed out only once
