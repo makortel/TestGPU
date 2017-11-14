@@ -64,7 +64,7 @@ c[9] = 19
 ```
 - a file `test_oneproducer.root` should be produced in the directory from which you run.
 ```
-Events -> inttestgpuVector_testGPU_VectorForGPU_TestGPU is the new branch that contains the data generated on the GPU.
+Events -> inttestgpuVector_testGPU_VectorForGPU_TestGPU is the new branch that contains data generated on the GPU.
 ```
 
 ## Dummy Standalone that uses the same kernel as CMSSW EDAnalyzer
