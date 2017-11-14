@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
 // Package:    UserCode/Dummy
-// Class:      Dummy
+// Class:      DummyOneAnalyzer
 // 
-/**\class Dummy Dummy.cc TestGPU/Dummy/plugins/Dummy.cc
+/**\class DummyOneAnalyzer DummyOneAnalyzer.cc TestGPU/Dummy/plugins/DummyOneAnalyzer.cc
 
  Description: [one line class summary]
 
@@ -41,10 +41,10 @@
 // constructor "usesResource("TFileService");"
 // This will improve performance in multithreaded jobs.
 
-class Dummy : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+class DummyOneAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
    public:
-      explicit Dummy(const edm::ParameterSet&);
-      ~Dummy();
+      explicit DummyOneAnalyzer(const edm::ParameterSet&);
+      ~DummyOneAnalyzer();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -68,7 +68,7 @@ class Dummy : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 //
 // constructors and destructor
 //
-Dummy::Dummy(const edm::ParameterSet& iConfig)
+DummyOneAnalyzer::DummyOneAnalyzer(const edm::ParameterSet& iConfig)
 
 {
    //now do what ever initialization is needed
@@ -77,7 +77,7 @@ Dummy::Dummy(const edm::ParameterSet& iConfig)
 }
 
 
-Dummy::~Dummy()
+DummyOneAnalyzer::~DummyOneAnalyzer()
 {
  
    // do anything here that needs to be done at desctruction time
@@ -92,7 +92,7 @@ Dummy::~Dummy()
 
 // ------------ method called for each event  ------------
 void
-Dummy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+DummyOneAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
 
@@ -112,19 +112,19 @@ Dummy::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-Dummy::beginJob()
+DummyOneAnalyzer::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-Dummy::endJob() 
+DummyOneAnalyzer::endJob() 
 {
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
-Dummy::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+DummyOneAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
@@ -133,4 +133,4 @@ Dummy::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(Dummy);
+DEFINE_FWK_MODULE(DummyOneAnalyzer);
