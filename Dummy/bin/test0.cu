@@ -1,11 +1,16 @@
 #include <stdio.h>
+#include <future>
+#include <thread>
+#include <chrono>
+#include <iostream>
 
-#define N 10000
+#define N 1000000
 
 __global__ 
 void vectorAdd(int *a, int *b, int *c) {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    c[i] = a[i] + b[i];
+    for (auto j=0; j<1000; j++)
+        c[i] = a[i] + b[i];
 }
 
 __global__
@@ -15,7 +20,11 @@ void matrixAdd(int **a,int **b, int**c) {
     c[i][j] = a[i][j] + b[i][j];
 }
 
+#define PRINT(x) \
+    std::cout << #x " = " << x << std::endl
+
 int main(int argc, char** argv) {
+    auto startTime = std::chrono::high_resolution_clock::now();
     printf("Hello World\n");
     int h_a[N], h_b[N], h_c[N];
     for (auto i=0; i<N; i++) {
@@ -29,17 +38,41 @@ int main(int argc, char** argv) {
     cudaMalloc(&d_b, N*sizeof(int));
     cudaMalloc(&d_c, N*sizeof(int));
 
+    std::chrono::duration<double, std::milli> timeToCopyH2D = 
+        std::chrono::high_resolution_clock::now() - startTime;
+    printf("Copy from Host to Device\n");
     // copy from host to device memory
     cudaMemcpy(d_a, h_a, N*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, h_b, N*sizeof(int), cudaMemcpyHostToDevice);
+    std::chrono::duration<double, std::milli> timeToAfterCopyH2D = 
+        std::chrono::high_resolution_clock::now() - startTime;
 
     // vector addition
     int threadsPerBlock(256);
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock; 
+    printf("Start the Kernel\n");
+    std::chrono::duration<double, std::milli> timeToJustBeforeKernelH2D = 
+        std::chrono::high_resolution_clock::now() - startTime;
     vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c);
+    std::chrono::duration<double, std::milli> timeToJustAfterKernel = 
+        std::chrono::high_resolution_clock::now() - startTime;
+    printf("Finished the Kernel\n");
 
     // copy the result output
+    printf("Copy from Device to Host\n");
+    std::chrono::duration<double, std::milli> timeToBeforeCopyD2H = 
+        std::chrono::high_resolution_clock::now() - startTime;
     cudaMemcpy(h_c, d_c, N*sizeof(int), cudaMemcpyDeviceToHost);
+    std::chrono::duration<double, std::milli> timeToAfterCopyD2H = 
+        std::chrono::high_resolution_clock::now() - startTime;
+    printf("Finished copying...\n");
+
+    PRINT(timeToCopyH2D.count());
+    PRINT(timeToAfterCopyH2D.count());
+    PRINT(timeToJustBeforeKernelH2D.count());
+    PRINT(timeToJustAfterKernel.count());
+    PRINT(timeToBeforeCopyD2H.count());
+    PRINT(timeToAfterCopyD2H.count());
 
     cudaFree(d_a);
     cudaFree(d_b);

@@ -28,7 +28,6 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/StreamID.h"
 
 
 //
@@ -45,7 +44,7 @@ class DummyOneProducer : public edm::one::EDProducer<> {
    private:
       virtual void beginJob() override;
       virtual void produce(edm::Event&, const edm::EventSetup&) override;
-      virtual void endStream() override;
+      virtual void endJob() override;
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -129,8 +128,6 @@ void
 DummyOneProducer::endJob() {
 }
 
-{
- 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
 DummyOneProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
