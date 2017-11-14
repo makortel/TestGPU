@@ -3,6 +3,8 @@
 <use name="FWCore/ParameterSet"/>
 <use name="cuda"/>
 
+<flags CUDA_LDFLAGS="-shared"/>
+
 <export>
     <lib name="1"/>
 </export>
