@@ -70,3 +70,16 @@ Events -> inttestgpuVector_testGPU_VectorForGPU_TestGPU is the new branch that c
 ## Dummy Standalone that uses the same kernel as CMSSW EDAnalyzer
 - Execute `standalone_test1`
 - The output should be identical to the above... but printed out only once
+
+## Description
+- interface/
+  - Vector.h - a new edm product
+  - gpu\_kernels - wrappers for the CUDA API to be called from the EDM modules
+- src/
+  - `classes.h` and `classes_def.xml` - for Genreflex - __Dictionary Generation for ROOT I/O__
+  - `gpu_kernels` - implementation of wrappers and GPU Kernels
+- plugins/
+  - `DummyOneAnalyzer` - analyzer calling a function that runs code on GPU
+  - `DummyOneProducer` - producer ...
+- bin/
+  - Test Executables
