@@ -105,9 +105,58 @@ DummyOneProducer::~DummyOneProducer()
 void
 DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-    testgpu::Vector<int> v1;
-    v1.m_values = std::vector<int>{1,2,3,4,5};
-    iEvent.put(std::make_unique<testgpu::Vector<int> >(v1), "VectorForGPU");
+    // 
+    // initialize vars on the host's side
+    //
+    int h_a[NUM_VALUES], h_b[NUM_VALUES], h_c[NUM_VALUES];
+    for (auto i=0; i<NUM_VALUES; i++) {
+        h_a[i] = i;
+        h_b[i] = i+1;
+    }
+
+    //
+    // allocate memory on the GPU (device) side. Just a wrapper around the cudaMalloc
+    //
+    int *d_a, *d_b, *d_c;
+    testgpu::allocate<NUM_VALUES>(d_a);
+    testgpu::allocate<NUM_VALUES>(d_b);
+    testgpu::allocate<NUM_VALUES>(d_c);
+
+    //
+    // copy arrays from Host to Device (true)
+    //
+    testgpu::copy<NUM_VALUES, true>(h_a, d_a);
+    testgpu::copy<NUM_VALUES, true>(h_b, d_b);
+
+    //
+    // launch kernel
+    //
+    testgpu::wrapperVectorAdd<NUM_VALUES>(d_a, d_b, d_c);
+
+    //
+    // copy data back
+    //
+    testgpu::copy<NUM_VALUES, false>(h_c, d_c);
+
+    //
+    // free data on GPU
+    //
+    testgpu::release(d_a);
+    testgpu::release(d_b);
+    testgpu::release(d_c);
+
+    // 
+    // print 
+    //
+    for (auto i=0; i<10; i++)
+        printf("c[%d] = %d\n", i, h_c[i]);
+
+    // 
+    // put into the edm::Event
+    //
+//    testgpu::Vector<int> v1;
+//    v1.m_values = std::vector<int>{1,2,3,4,5};
+//    iEvent.put(std::make_unique<testgpu::Vector<int> >(v1), "VectorForGPU");
 
 /* This is an event example
    //Read 'ExampleData' from the Event

@@ -5,11 +5,37 @@
 #define NUM_VALUES 10000
 
 __global__
-void vectorAdd(int *a, int *b, int *c) {
+template<typename T>
+void vectorAdd(T *a, T *b, T *c) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     c[i] = a[i] + b[i];
-    if (i%1000==0)
-        printf("Adding Vector element: c[%d] = i*i + i = %d\n", i, c[i]);
+}
+
+namespace testgpu {
+
+template<int NUM_OF_VALUES, typename T>
+void allocate(T* values) {
+    cudaMalloc(&values, NUM_OF_VALUES*sizeof(T));
+}
+
+template<int NUM_OF_VALUES, bool COPYDIRECTION, typename T>
+void copy(T* h_values, T* d_values) {
+    if (COPYDIRECTION) 
+        cudaMemcpy(d_values, h_values, NUM_OF_VALUES*sizeof(T), cudaMemcpyHostToDevice);
+    else
+        cudaMemcpy(h_values, d_values, NUM_OF_VALUES*sizeof(T), cudaMemcpyDeviceToHost);
+}
+
+template<int NUM_OF_VALUES, typename T>
+void wrapperVectorAdd(T* d_a, T* d_b, T* d_c) {
+    int threadsPerBlock {256};
+    int blocksPerGrid = (NUM_OF_VALUES + threadsPerBlock - 1) / threadsPerBlock;
+    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c);
+}
+
+template<typename T>
+void release(T* d_values) {
+    cudaFree(d_values);
 }
 
 void launch_on_gpu() {
@@ -44,4 +70,6 @@ void launch_on_gpu() {
 
     printf("\n");
     printf("stop launch_on_gpu\n");
+}
+
 }
