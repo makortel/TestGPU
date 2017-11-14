@@ -29,6 +29,8 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+// use the new product
+#include "TestGPU/Dummy/interface/Vector.h"
 
 //
 // class declaration
@@ -68,7 +70,10 @@ class DummyOneProducer : public edm::one::EDProducer<> {
 //
 DummyOneProducer::DummyOneProducer(const edm::ParameterSet& iConfig)
 {
-   //register your products
+    testgpu::Vector<int> v;
+
+    produces<testgpu::Vector<int> >("VectorForGPU");
+
 /* Examples
    produces<ExampleData2>();
 
@@ -100,7 +105,10 @@ DummyOneProducer::~DummyOneProducer()
 void
 DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-   using namespace edm;
+    testgpu::Vector<int> v1;
+    v1.m_values = std::vector<int>{1,2,3,4,5};
+    iEvent.put(std::make_unique<testgpu::Vector<int> >(v1), "VectorForGPU");
+
 /* This is an event example
    //Read 'ExampleData' from the Event
    Handle<ExampleData> pIn;

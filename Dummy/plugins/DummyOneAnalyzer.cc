@@ -97,16 +97,6 @@ DummyOneAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
    using namespace edm;
 
     launch_on_gpu();
-
-#ifdef THIS_IS_AN_EVENT_EXAMPLE
-   Handle<ExampleData> pIn;
-   iEvent.getByLabel("example",pIn);
-#endif
-   
-#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
-   ESHandle<SetupData> pSetup;
-   iSetup.get<SetupRecord>().get(pSetup);
-#endif
 }
 
 

@@ -1,6 +1,7 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/PluginManager"/>
 <use name="FWCore/ParameterSet"/>
+<use name="DataFormats/Common"/>
 <use name="cuda"/>
 
 <flags CUDA_LDFLAGS="-shared"/>

@@ -11,6 +11,10 @@ public:
     std::vector<T> m_values;
 };
 
+typedef testgpu::Vector<int> VectorOfInt;
+typedef testgpu::Vector<float> VectorOfFloat;
+typedef testgpu::Vector<double> VectorOfDouble;
+
 }
 
 #endif
