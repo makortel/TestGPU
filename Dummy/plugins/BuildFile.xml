@@ -3,6 +3,8 @@
 <use name="FWCore/ParameterSet"/>
 <use name="TestGPU/Dummy"/>
 
+<flags CXXFLAGS="-Wno-error=uninitialized"/>
+
 <library file="*.cc" name="TestGPUDummyPlugins">
     <flags EDM_PLUGIN="1"/>
 </library>

@@ -31,6 +31,9 @@
 
 // use the new product
 #include "TestGPU/Dummy/interface/Vector.h"
+#include "TestGPU/Dummy/interface/gpu_kernels.h"
+
+#define NUM_VALUES 10000
 
 //
 // class declaration
@@ -105,6 +108,7 @@ DummyOneProducer::~DummyOneProducer()
 void
 DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+    
     // 
     // initialize vars on the host's side
     //
@@ -118,15 +122,15 @@ DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     // allocate memory on the GPU (device) side. Just a wrapper around the cudaMalloc
     //
     int *d_a, *d_b, *d_c;
-    testgpu::allocate<NUM_VALUES>(d_a);
-    testgpu::allocate<NUM_VALUES>(d_b);
-    testgpu::allocate<NUM_VALUES>(d_c);
+    testgpu::allocate<NUM_VALUES>(&d_a);
+    testgpu::allocate<NUM_VALUES>(&d_b);
+    testgpu::allocate<NUM_VALUES>(&d_c);
 
     //
     // copy arrays from Host to Device (true)
     //
-    testgpu::copy<NUM_VALUES, true>(h_a, d_a);
-    testgpu::copy<NUM_VALUES, true>(h_b, d_b);
+    testgpu::copy<NUM_VALUES>(h_a, d_a, true);
+    testgpu::copy<NUM_VALUES>(h_b, d_b, true);
 
     //
     // launch kernel
@@ -136,7 +140,7 @@ DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     // copy data back
     //
-    testgpu::copy<NUM_VALUES, false>(h_c, d_c);
+    testgpu::copy<NUM_VALUES>(h_c, d_c, false);
 
     //
     // free data on GPU
@@ -150,30 +154,14 @@ DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     for (auto i=0; i<10; i++)
         printf("c[%d] = %d\n", i, h_c[i]);
-
+    
     // 
     // put into the edm::Event
     //
-//    testgpu::Vector<int> v1;
-//    v1.m_values = std::vector<int>{1,2,3,4,5};
-//    iEvent.put(std::make_unique<testgpu::Vector<int> >(v1), "VectorForGPU");
+    testgpu::Vector<int> v1;
+    v1.m_values = std::vector<int>(h_c, h_c + NUM_VALUES);
+    iEvent.put(std::make_unique<testgpu::Vector<int> >(v1), "VectorForGPU");
 
-/* This is an event example
-   //Read 'ExampleData' from the Event
-   Handle<ExampleData> pIn;
-   iEvent.getByLabel("example",pIn);
-
-   //Use the ExampleData to create an ExampleData2 which 
-   // is put into the Event
-   iEvent.put(std::make_unique<ExampleData2>(*pIn));
-*/
-
-/* this is an EventSetup example
-   //Read SetupData from the SetupRecord in the EventSetup
-   ESHandle<SetupData> pSetup;
-   iSetup.get<SetupRecord>().get(pSetup);
-*/
- 
 }
 
 void

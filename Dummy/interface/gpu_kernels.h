@@ -9,16 +9,18 @@ namespace testgpu {
 void launch_on_gpu();
 
 // allocate 
-template<int NUM_OF_VALUES, typename T = int>
-void allocate(T*);
+template<int NUM_OF_VALUES, typename T>
+void allocate(T**);
 
 // copy to GPU (true) / from (false)
-template<int NUM_OF_VALUES, bool TOGPU = true, typename T>
-void copy(T*, T*);
+template<int NUM_OF_VALUES, typename T>
+void copy(T* /* h_values */, T* /* d_values */,  bool /* direction */);
 
+// a wrapper for the kernel for vector addition
 template<int NUM_OF_VALUES, typename T>
 void wrapperVectorAdd(T*, T*, T*);
 
+// free the memory on the device
 template<typename T>
 void release(T*);
 

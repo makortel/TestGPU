@@ -96,7 +96,7 @@ DummyOneAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 {
    using namespace edm;
 
-    launch_on_gpu();
+   testgpu::launch_on_gpu();
 }
 
 

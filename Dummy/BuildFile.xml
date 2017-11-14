@@ -4,8 +4,6 @@
 <use name="DataFormats/Common"/>
 <use name="cuda"/>
 
-<flags CUDA_LDFLAGS="-shared"/>
-
 <export>
     <lib name="1"/>
 </export>

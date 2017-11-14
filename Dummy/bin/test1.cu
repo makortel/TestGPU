@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     printf("Hello World\n");
 
     // run the kernel
-    launch_on_gpu();
+    testgpu::launch_on_gpu();
 
     printf("Goodbye World\n");
 }
