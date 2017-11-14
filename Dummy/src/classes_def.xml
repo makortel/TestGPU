@@ -1,0 +1,4 @@
+<lcgdict>
+    <class name="testgpu::Vector"/>
+    <class name="edm::Wrapper<testgpu::Vector>" />
+</lcgdict>
