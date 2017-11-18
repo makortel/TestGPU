@@ -1,5 +1,9 @@
 # TestGPU - Test Cuda GPU workflows within cmssw and in standalone
-
+__The idea is to test:__
+- Compilation and compiler features of nvcc
+- Interplay with cc compiler (linking)
+- Test language features and GPU functionality
+- Integration with cmssw. 
 
 ## Setup on felk40.cern.ch
 - Pascal Architecture (Compute Capability 6.1)
