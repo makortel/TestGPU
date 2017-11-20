@@ -10,8 +10,8 @@
     <environment name="LIBDIR"    default="$CUDA_BASE/lib64"/>
     <environment name="INCLUDE"   default="$CUDA_BASE/include"/>
   </client>
-  <flags CUDA_CFLAGS="-O2 -fPIC -std=c++11"/>
+  <flags CUDA_CFLAGS="-O2 -fPIC -std=c++14"/>
   <!-- NOTE: Compute Capability of the device on felk40 is 6.1 - of Pascal Architecture -->
-  <flags CUDA_FLAGS="-Xptxas -v --maxrregcount=32 --default-stream per-thread -O2 -std=c++11 -gencode arch=compute_61,code=sm_61"/>
+  <flags CUDA_FLAGS="-Xptxas -v --maxrregcount=32 --default-stream per-thread -O2 -std=c++14 -gencode arch=compute_61,code=sm_61"/>
   <runtime name="PATH" value="$CUDA_BASE/bin" type="path"/>
 </tool>

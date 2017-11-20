@@ -13,6 +13,9 @@
 #include "TestGPU/DummyService/interface/AService.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 //
 // class declaration
 //
