@@ -3,7 +3,7 @@
 __Goal:__ I believe the goal for this iteration is to clearly establish:
 - how GPU code should be structured/compiled/linked within CMSSW
 - test memory management techniques (*potentially identify the interfaces for the future to be used by the Service*)
-- Concurrency on the host with the concurrency on the GPU (e.g. how to associate cmssw streamId with GPU streams, how many GPU streams per 1 CPU stream, etc...)
+- Concurrency on the host with the concurrency on the GPU (e.g. how many GPU streams per 1 CPU stream, etc...)
 - which api to use (Runtime or Driver). For now __Runtime__
 - which interfaces are handy and should be introduced to the Accelerator Service.
 - __Most importantly, exercise the procedure for RAW -> DIGI conversion__
