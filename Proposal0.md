@@ -27,6 +27,7 @@ cudaStream_t stream[NSTREAM];
 int *mIndexStart_d, *mIndexEnd_d; 
 CablingMap *Map;
 ```
+- Limit the amount of copying by copying/allocating in chuncks. __Watch out for the proper alignment__
 - Compile with `--default-stream per-thread` (done already, just for reference)
 
 __pros:__
