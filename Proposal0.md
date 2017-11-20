@@ -29,6 +29,13 @@ CablingMap *Map;
 ```
 - Limit the amount of copying by copying/allocating in chuncks. __Watch out for the proper alignment__
 - Compile with `--default-stream per-thread` (done already, just for reference)
+- Separate CUDA kernels into a separate interface/src folders and make them part of the shared library to make them testable in standalone (*Might be changed in the future*)
+
+## RAW -> DIGI Specifics:
+- Emulate the loading of conditions.
+- Rearrange things slight/make code more readable.
+- Remove the globals
+- Add the `event.put()` - inclusion of the computed collections into the event.
 
 __pros:__
 - __Simplify - Memory to be managed directly by the plugin__. Currently, not clear what exactly service should be doing yet (besides counting the number of devices, managing memory)
