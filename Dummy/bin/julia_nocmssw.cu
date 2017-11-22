@@ -34,23 +34,57 @@ void func(const char* ptr) {
 struct cuComplex {
     float r;
     float i;
-    cuComplex(float a, float b) : r(a), i(b) {}
+    __host__ __device__ cuComplex(float a, float b) : r(a), i(b) {}
 
-    float magnitude2(void) { return r*r + i*i; }
-    cuComplex operator*(const cuComplex& a) {
+    __host__ __device__ float magnitude2(void) { return r*r + i*i; }
+    __host__ __device__ cuComplex operator*(const cuComplex& a) {
         return cuComplex(r*a.r - i*a.i, i*a.r + r*a.i);
     }
-    cuComplex operator+(const cuComplex& a) {
+    __host__ __device__ cuComplex operator+(const cuComplex& a) {
         return cuComplex(r+a.r, i+a.i);
     }
 };
 
+/*
+struct d_cuComplex {
+    float r;
+    float i;
+    __device__ d_cuComplex(float a, float b) : r(a), i(b) {}
+
+    __device__ float magnitude2(void) { return r*r + i*i; }
+    __device__ d_cuComplex operator*(const d_cuComplex& a) {
+        return d_cuComplex(r*a.r - i*a.i, i*a.r + r*a.i);
+    }
+    __device__ d_cuComplex operator+(const d_cuComplex& a) {
+        return d_cuComplex(r+a.r, i+a.i);
+    }
+};*/
+
+/*
 int julia(int x, int y) {
     const float scale = 1.5;
     float jx = scale * (float)(SIZE/2 - x)/(SIZE/2);
     float jy = scale * (float)(SIZE/2 - y)/(SIZE/2);
 
 //    cuComplex c(-0.4, 0.6);
+    cuComplex c(-0.8, 0.156);
+    cuComplex a(jx, jy);
+    int i = 0;
+    for (i=0; i<200; i++) {
+        a = a*a + c;
+        if (a.magnitude2() > 1000)
+            return 0;
+    }
+
+    return 1;
+}
+*/
+
+__host__ __device__ int julia(int x, int y) {
+    const float scale = 1.5;
+    float jx = scale * (float)(SIZE/2 - x)/(SIZE/2);
+    float jy = scale * (float)(SIZE/2 - y)/(SIZE/2);
+
     cuComplex c(-0.8, 0.156);
     cuComplex a(jx, jy);
     int i = 0;
@@ -83,6 +117,15 @@ void printImage(char* ptr) {
     }
 
     printf("\n");
+}
+
+__global__ void julia_kernel(char *image) {
+    int x = blockIdx.x;
+    int y = blockIdx.y;
+    int offset = x+y * gridDim.x;
+
+    int juliaValue = julia(x,y);
+    image[offset] = juliaValue == 1 ? 'x' : ' ';
 }
 
 int main(int argc, char** argv) {
@@ -137,6 +180,15 @@ int main(int argc, char** argv) {
     char image[SIZE * SIZE];
     kernel(image);
     printImage(image);
+
+    char h_image[SIZE * SIZE];
+    char *d_image;
+    cudaMalloc((void**)&d_image, SIZE*SIZE);
+    dim3 grid(SIZE, SIZE);
+
+    julia_kernel<<<grid, 1>>>(d_image);
+    cudaMemcpy(h_image, d_image, SIZE * SIZE, cudaMemcpyDeviceToHost);
+    printImage(h_image);
 
     // stop time
     auto stopTime = std::chrono::high_resolution_clock::now();
