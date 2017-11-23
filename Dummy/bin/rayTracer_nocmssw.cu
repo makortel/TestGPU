@@ -193,6 +193,15 @@ int main(int argc, char** argv) {
 
     cudaFree(d_image);
     cudaCheckError();
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+
+    float elapsed;
+    cudaEventElapsedTime(&elapsed, start, stop);
+    printf("elapsed = %f\n", elapsed);
+
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 
     printImage(h_image);
 

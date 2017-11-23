@@ -1,6 +1,6 @@
 SOURCES=$(shell ls *_nocmssw.cu)
 EXECS=$(SOURCES:.cu=)
-CUFLAGS=-std=c++11 -v
+CUFLAGS=-std=c++11 -v -arch=sm_60
 
 .SUFFIXES:
 
