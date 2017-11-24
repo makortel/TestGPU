@@ -28,6 +28,73 @@ void func(const char* ptr) {
     std::cout << "ptr = " << ptr << std::endl;
 }
 
+#define SIZE 10 * 1024 * 1024
+
+float cuda_malloc_test(int size, bool up) {
+    cudaEvent_t start, stop;
+    int *a, *d_a;
+    float elapsedTime;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    // allocate host array
+    a = new int[size];
+    // allocate device array
+    cudaMalloc((void**)&d_a, size* sizeof(int));
+
+    // revcord the start of the transfer
+    cudaEventRecord(start, 0);
+    for (auto i=0; i<100; i++) {
+        if (up)
+            cudaMemcpy(d_a, a, size*sizeof(*d_a), cudaMemcpyHostToDevice);
+        else
+            cudaMemcpy(a, d_a, size*sizeof(*d_a), cudaMemcpyDeviceToHost);
+    }
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+
+    free(a);
+    cudaFree(d_a);
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
+
+    return elapsedTime;
+}
+
+float cuda_host_alloc_test(int size, bool up) {
+    cudaEvent_t start, stop;
+    int *a, *d_a;
+    float elapsedTime;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaHostAlloc((void**)&a, size * sizeof(int), cudaHostAllocDefault);
+    cudaMalloc((void**)&d_a, size * sizeof(int));
+
+    cudaEventRecord(start, 0);
+    for(auto i = 0; i<100; i++) {
+        if (up)
+            cudaMemcpy(d_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
+        else
+            cudaMemcpy(a, d_a, size * sizeof(int), cudaMemcpyDeviceToHost);
+    }
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+
+    cudaFreeHost(a);
+    cudaFree(d_a);
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
+
+    return elapsedTime;
+}
+
 int main(int argc, char** argv) {
     // start time
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -76,6 +143,29 @@ int main(int argc, char** argv) {
 //        PRINT(prop.maxTexture2DArray[2]);
         PRINT(prop.concurrentKernels);
     }
+
+    float elapsedTime;
+    float MB = (float)100 * SIZE  * sizeof(int)/1024/1024;
+
+    // test with cudaMalloc host -> .device
+    elapsedTime = cuda_malloc_test(SIZE, true);
+    printf("Time using cudaMalloc: %3.1f ms\n", elapsedTime);
+    printf("\tMB/s udring copy host -> device: %3.1f\n", MB/(elapsedTime/1000));
+
+    // test with cudaMalloc device -> host
+    elapsedTime = cuda_malloc_test(SIZE, false);
+    printf("Time using cudaMalloc: %3.1f ms\n", elapsedTime);
+    printf("\tMB/s during copy device -> host: %3.1f\n", MB/(elapsedTime/1000));
+
+    // test with cudaHostAlloc host -> device
+    elapsedTime = cuda_host_alloc_test(SIZE, true);
+    printf("Time using cudaHostAlloc: %3.1f ms\n", elapsedTime);
+    printf("\tMB/s udring copy host -> device: %3.1f\n", MB/(elapsedTime/1000));
+
+    // test with cudaHostAlloc device -> host
+    elapsedTime = cuda_host_alloc_test(SIZE, false);
+    printf("Time using cudaHostAlloc: %3.1f ms\n", elapsedTime);
+    printf("\tMB/s during copy device -> host: %3.1f\n", MB/(elapsedTime/1000));
 
     // stop time
     auto stopTime = std::chrono::high_resolution_clock::now();
