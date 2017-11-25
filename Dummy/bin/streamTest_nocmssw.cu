@@ -96,15 +96,20 @@ int main(int argc, char** argv) {
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
 
-    cudaStream_t stream;
-    cudaStreamCreate(&stream);
+    cudaStream_t stream0, stream1;
+    cudaStreamCreate(&stream0);
+    cudaStreamCreate(&stream1);
 
     int *h_a, *h_b, *h_c;
-    int *d_a, *d_b, *d_c;
+    int *d_a0, *d_b0, *d_c0;
+    int *d_a1, *d_b1, *d_c1;
 
-    cudaMalloc((void**)&d_a, N * sizeof(int));
-    cudaMalloc((void**)&d_b, N * sizeof(int));
-    cudaMalloc((void**)&d_c, N * sizeof(int));
+    cudaMalloc((void**)&d_a0, N * sizeof(int));
+    cudaMalloc((void**)&d_b0, N * sizeof(int));
+    cudaMalloc((void**)&d_c0, N * sizeof(int));
+    cudaMalloc((void**)&d_a1, N * sizeof(int));
+    cudaMalloc((void**)&d_b1, N * sizeof(int));
+    cudaMalloc((void**)&d_c1, N * sizeof(int));
 
     cudaHostAlloc((void**)&h_a, FULL_DATA_SIZE * sizeof(int), cudaHostAllocDefault);
     cudaHostAlloc((void**)&h_b, FULL_DATA_SIZE * sizeof(int), cudaHostAllocDefault);
@@ -115,20 +120,33 @@ int main(int argc, char** argv) {
         h_b[i] = i*i;
     }
 
-    for (auto i=0; i<FULL_DATA_SIZE; i+=N) {
-        cudaMemcpyAsync(d_a, h_a + i, N * sizeof(int),
-                        cudaMemcpyHostToDevice, stream);
-        cudaMemcpyAsync(d_b, h_b + i, N * sizeof(int),
-                        cudaMemcpyHostToDevice, stream);
+    for (auto i=0; i<FULL_DATA_SIZE; i+=2*N) {
+        // copy a for both streams
+        cudaMemcpyAsync(d_a0, h_a + i, N * sizeof(int),
+                        cudaMemcpyHostToDevice, stream0);
+        cudaMemcpyAsync(d_a1, h_a + i + N,
+                        N * sizeof(int), cudaMemcpyHostToDevice, stream1);
 
-        kernel<<<N/256, 256, 0, stream>>>(d_a, d_b, d_c);
+        // copy b for both streams
+        cudaMemcpyAsync(d_b0, h_b + i, N * sizeof(int),
+                        cudaMemcpyHostToDevice, stream0);
+        cudaMemcpyAsync(d_a1, h_a + i + N,
+                        N * sizeof(int), cudaMemcpyHostToDevice, stream1);
 
-        cudaMemcpyAsync(h_c + i, d_c, N * sizeof(int),
-                        cudaMemcpyDeviceToHost, stream);
+        // execute kernels for both streams
+        kernel<<<N/256, 256, 0, stream0>>>(d_a0, d_b0, d_c0);
+        kernel<<<N/256, 256, 0, stream1>>>(d_a1, d_b1, d_c1);
+
+        // copy c back for both streams
+        cudaMemcpyAsync(h_c + i, d_c0, N * sizeof(int),
+                        cudaMemcpyDeviceToHost, stream0);
+        cudaMemcpyAsync(h_c + i + N, d_c1, N * sizeof(int),
+                        cudaMemcpyDeviceToHost, stream1);
     }
 
     // CPU to wait until GPU has finished
-    cudaStreamSynchronize(stream);
+    cudaStreamSynchronize(stream0);
+    cudaStreamSynchronize(stream1);
 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -140,11 +158,15 @@ int main(int argc, char** argv) {
     cudaFreeHost(h_a);
     cudaFreeHost(h_b);
     cudaFreeHost(h_c);
-    cudaFree(d_a);
-    cudaFree(d_b);
-    cudaFree(d_c);
+    cudaFree(d_a0);
+    cudaFree(d_b0);
+    cudaFree(d_c0);
+    cudaFree(d_a1);
+    cudaFree(d_b1);
+    cudaFree(d_c1);
 
-    cudaStreamDestroy(stream);
+    cudaStreamDestroy(stream0);
+    cudaStreamDestroy(stream1);
 
     // stop time
     auto stopTime = std::chrono::high_resolution_clock::now();
