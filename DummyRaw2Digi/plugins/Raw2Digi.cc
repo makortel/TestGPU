@@ -43,12 +43,10 @@ class Raw2Digi : public edm::stream::EDProducer<> {
    private:
       virtual void produce(edm::Event&, const edm::EventSetup&) override;
 
-      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
-      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
-
       // ----------member data ---------------------------
+      edm::EDGetTokenT<FEDRawDataCollection> m_tFEDRawDataCollection;
+
+      std::vector<unsigned int> m_fedIds;
 };
 
 //
@@ -65,17 +63,9 @@ class Raw2Digi : public edm::stream::EDProducer<> {
 //
 Raw2Digi::Raw2Digi(const edm::ParameterSet& iConfig)
 {
-/* Examples
-   produces<ExampleData2>();
-
-   //if do put with a label
-   produces<ExampleData2>("label");
- 
-   //if you want to put into the Run
-   produces<ExampleData2,InRun>();
-*/
-   //now do what ever other initialization is needed
-  
+    // init the token
+    m_tFEDRawDataCollection = consumes<FEDRawDataCollection>(
+        iConfig.getParameter<edm::InputTag>("InputLabel"));
 }
 
 
@@ -96,8 +86,25 @@ Raw2Digi::~Raw2Digi()
 void
 Raw2Digi::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-    edm::Handle<FEDRawDataCollection> buffers;
-    iEvent.getByToken()
+    // get conditions
+    if (recordWatcher.check(iSetup)) {
+        edm::ESTransientHandle<SiPixelFedCablingMap> cablingMap;
+        es.get<SiPixelFedCablingMapRcd>().get( cablingMapLabel, cablingMap );
+        m_fedIds   = cablingMap->fedIds();
+    }
+
+    // get the collection of raw buffers
+    edm::Handle<FEDRawDataCollection> fedRawDataCollection;
+    iEvent.getByToken(m_tFEDRawDataCollection, fedRawDataCollection);
+
+    // initialize the collections to be put into the edm::Event
+    auto collection = std::make_unique<edm::DetSetVector<PixelDigi>>();
+
+    // For each Pixel FED
+    for (auto it = m_fedIds.begin(); it!=m_fedIds.end(); it++) {
+        int fed = *it;
+        printf("fed = %d\n", fed);
+    }
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
