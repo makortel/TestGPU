@@ -13,6 +13,7 @@ process.options = cms.untracked.PSet(
 )
 
 
+#process.Tracer = cms.Service("Tracer")
 process.AcceleratorService = cms.Service("AcceleratorService")
 process.producer = cms.EDProducer('TestAcceleratorServiceProducer')
 
