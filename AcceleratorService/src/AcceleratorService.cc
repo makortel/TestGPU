@@ -65,15 +65,27 @@ AcceleratorService::Token AcceleratorService::book() {
 void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task) {
   // not really async but let's "simulate"
 
+  std::random_device r;
+  std::mt19937 gen(r());
+  auto dist1 = std::uniform_int_distribution<>(0, 1); // simulate the scheduler decision
+  auto cpu_or_gpu = dist1(gen);
+
   edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
   tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)] = std::move(task);
   auto asyncThread = std::thread([=](){
-      edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " launching task";
-      tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_CPU();
-      edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " task finished";
+      if(cpu_or_gpu == 0) {
+        edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
+        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_CPU();
+        edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
+      }
+      else {
+        edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
+        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_GPUCuda();
+        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_copyToCPU_GPUCuda();
+        edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
+      }
     });
-  std::random_device r;
-  std::mt19937 gen(r());
+
   auto dist = std::uniform_real_distribution<>(0.1, 5.0); 
   auto dur = dist(gen);
   edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " doing something else for some time (" << dur << " seconds)";

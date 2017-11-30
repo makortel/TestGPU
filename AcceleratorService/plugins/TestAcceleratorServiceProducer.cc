@@ -13,7 +13,7 @@
 #include <chrono>
 
 namespace {
-  class TestTask: public AcceleratorTask<accelerator::CPU> {
+  class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
   public:
     TestTask(unsigned int eventId, unsigned int streamId):
       eventId_(eventId), streamId_(streamId) {}
@@ -22,11 +22,26 @@ namespace {
     void run_CPU() override {
       std::random_device r;
       std::mt19937 gen(r());
-      auto dist = std::uniform_real_distribution<>(0.1, 2.0); 
+      auto dist = std::uniform_real_distribution<>(1.0, 3.0); 
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "    Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
 
       output_ = streamId_*100 + eventId_;
+    }
+
+    void run_GPUCuda() override {
+      std::random_device r;
+      std::mt19937 gen(r());
+      auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
+      auto dur = dist(gen);
+      edm::LogPrint("Foo") << "    Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
+
+      gpuOutput_ = streamId_*100 + eventId_;
+    }
+
+    void copyToCPU_GPUCuda() override {
+      edm::LogPrint("Foo") << "    Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " copying to CPU";
+      output_ = gpuOutput_;
     }
 
     unsigned int getOutput() const { return output_; }
@@ -35,6 +50,9 @@ namespace {
     // input
     unsigned int eventId_;
     unsigned int streamId_;
+
+    // simulating GPU memory
+    unsigned int gpuOutput_;
 
     // output
     unsigned int output_;
