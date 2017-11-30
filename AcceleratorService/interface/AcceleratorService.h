@@ -49,6 +49,7 @@ private:
 
   // other helpers
   unsigned int tokenStreamIdsToDataIndex(unsigned int tokenId, edm::StreamID streamId) const;
+  bool isGPUAvailable() const;
 
   unsigned int numberOfStreams_ = 0;
 
