@@ -15,14 +15,17 @@ process.options = cms.untracked.PSet(
 
 #process.Tracer = cms.Service("Tracer")
 process.AcceleratorService = cms.Service("AcceleratorService")
-process.producer = cms.EDProducer('TestAcceleratorServiceProducer')
+process.prod1 = cms.EDProducer('TestAcceleratorServiceProducer')
+process.prod2= cms.EDProducer('TestAcceleratorServiceProducer',
+    src = cms.InputTag("prod1")
+)
 
-#process.t = cms.Task(process.producer)
+#process.t = cms.Task(process.prod1, process.prod2)
 
 process.eca = cms.EDAnalyzer("EventContentAnalyzer",
     getData = cms.untracked.bool(True),
     getDataForModuleLabels = cms.untracked.vstring("producer"),
     listContent = cms.untracked.bool(True),
 )
-process.p = cms.Path(process.producer)#+process.eca)
+process.p = cms.Path(process.prod1+process.prod2)#+process.eca)
 #process.p.associate(process.t)

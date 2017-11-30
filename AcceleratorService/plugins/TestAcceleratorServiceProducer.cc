@@ -15,8 +15,8 @@
 namespace {
   class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
   public:
-    TestTask(unsigned int eventId, unsigned int streamId):
-      eventId_(eventId), streamId_(streamId) {}
+    TestTask(int input, unsigned int eventId, unsigned int streamId):
+      input_(input), eventId_(eventId), streamId_(streamId) {}
     ~TestTask() override = default;
 
     void run_CPU() override {
@@ -26,7 +26,7 @@ namespace {
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "    Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
 
-      output_ = streamId_*100 + eventId_;
+      output_ = input_ + streamId_*100 + eventId_;
     }
 
     void run_GPUCuda() override {
@@ -36,7 +36,7 @@ namespace {
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "    Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
 
-      gpuOutput_ = streamId_*100 + eventId_;
+      gpuOutput_ = input_ + streamId_*100 + eventId_;
     }
 
     void copyToCPU_GPUCuda() override {
@@ -48,6 +48,7 @@ namespace {
 
   private:
     // input
+    int input_;
     unsigned int eventId_;
     unsigned int streamId_;
 
@@ -67,15 +68,17 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
+  std::string label_;
   AcceleratorService::Token accToken_;
 
+  edm::EDGetTokenT<int> srcToken_;
 
   // to mimic external task worker interface
   void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup);
   void produceReal(edm::Event& iEvent, const edm::EventSetup& iSetup);
 
   virtual void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override {
-    edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID();
+    edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
     acquire(iEvent, iSetup);
     produceReal(iEvent, iSetup);
     edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << "\n";
@@ -84,15 +87,28 @@ private:
 
 
 TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::ParameterSet& iConfig):
+  label_(iConfig.getParameter<std::string>("@module_label")),
   accToken_(edm::Service<AcceleratorService>()->book())
 {
+  auto srcTag = iConfig.getParameter<edm::InputTag>("src");
+  if(!srcTag.label().empty()) {
+    srcToken_ = consumes<int>(srcTag);
+  }
+
   produces<int>();
 }
 
 void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID();
+  int input = 0;
+  if(!srcToken_.isUninitialized()) {
+    edm::Handle<int> hint;
+    iEvent.getByToken(srcToken_, hint);
+    input = *hint;
+  }
+
+  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " input " << input;
   edm::Service<AcceleratorService> acc;
-  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(iEvent.id().event(), iEvent.streamID()));
+  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()));
   edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID();
 }
 
@@ -106,6 +122,7 @@ void TestAcceleratorServiceProducer::produceReal(edm::Event& iEvent, const edm::
 
 void TestAcceleratorServiceProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
+  desc.add<edm::InputTag>("src", edm::InputTag());
   descriptions.add("testAcceleratorServiceProducer", desc);
 }
 
