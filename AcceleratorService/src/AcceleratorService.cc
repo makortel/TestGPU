@@ -27,8 +27,8 @@ AcceleratorService::AcceleratorService(edm::ParameterSet const& iConfig, edm::Ac
 void AcceleratorService::preallocate(edm::service::SystemBounds const& bounds) {
   numberOfStreams_ = bounds.maxNumberOfStreams();
   edm::LogPrint("Foo") << "AcceleratorService: number of streams " << numberOfStreams_;
-  // called after module construction, so initialize data_ here
-  data_.insert(data_.end(), moduleIds_.size()*numberOfStreams_, 0);
+  // called after module construction, so initialize tasks_ here
+  tasks_.resize(moduleIds_.size()*numberOfStreams_);
 }
 
 void AcceleratorService::preModuleConstruction(edm::ModuleDescription const& desc) {
@@ -62,13 +62,14 @@ AcceleratorService::Token AcceleratorService::book() {
   return Token(index);
 }
 
-void AcceleratorService::async(Token token, edm::StreamID streamID, std::function<int(void)> task) {
+void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task) {
   // not really async but let's "simulate"
 
   edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
+  tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)] = std::move(task);
   auto asyncThread = std::thread([=](){
       edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " launching task";
-      data_[tokenStreamIdsToDataIndex(token.id(), streamID)] = task();
+      tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_CPU();
       edm::LogPrint("Foo") << "   AcceleratorService token " << token.id() << " stream " << streamID << " task finished";
     });
   std::random_device r;
@@ -79,6 +80,14 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, std::functio
   std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
   asyncThread.join();
   edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " async finished";
+}
+
+const AcceleratorTaskBase& AcceleratorService::getTask(Token token, edm::StreamID streamID) const {
+  auto& ptr = tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)];
+  if(ptr == nullptr) {
+    throw cms::Exception("LogicError") << "No task for token " << token.id() << " stream " << streamID;
+  }
+  return *ptr;
 }
 
 void AcceleratorService::print() {

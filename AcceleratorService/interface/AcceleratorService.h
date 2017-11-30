@@ -3,8 +3,11 @@
 
 #include "FWCore/Utilities/interface/StreamID.h"
 
+#include "TestGPU/AcceleratorService/interface/AcceleratorTask.h"
+
 #include <vector>
 #include <mutex>
+#include <memory>
 
 namespace edm {
   class ParameterSet;
@@ -31,11 +34,9 @@ public:
 
   Token book(); // TODO: better name, unfortunately 'register' is a reserved keyword...
 
-  void async(Token token, edm::StreamID streamID, std::function<int(void)> task);
+  void async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task);
 
-  int result(Token token, edm::StreamID streamID) const {
-    return data_[tokenStreamIdsToDataIndex(token.id(), streamID)];
-  }
+  const AcceleratorTaskBase& getTask(Token token, edm::StreamID streamID) const;
 
   void print();
 
@@ -57,8 +58,8 @@ private:
 
   // TODO: how to treat subprocesses?
   std::mutex moduleMutex_;
-  std::vector<unsigned int> moduleIds_; // list of module ids that have registered something on the service
-  std::vector<int> data_;      // numberOfStreams x moduleIds_.size(), indexing defined by moduleStreamIdsToDataIndex
+  std::vector<unsigned int> moduleIds_;                      // list of module ids that have registered something on the service
+  std::vector<std::unique_ptr<AcceleratorTaskBase> > tasks_; // numberOfStreams x moduleIds_.size(), indexing defined by moduleStreamIdsToDataIndex
 };
 
 #endif
