@@ -1,11 +1,11 @@
 // -*- C++ -*-
 //
 // Package:    TestGPU/Dummy
-// Class:      DummyOneProducer
+// Class:      DummyStreamProducer
 // 
-/**\class DummyOneProducer DummyOneProducer.cc TestGPU/Dummy/plugins/DummyOneProducer.cc
+/**\class DummyStreamProducer DummyStreamProducer.cc TestGPU/Dummy/plugins/DummyStreamProducer.cc
 
- Description: Dummy EDM One Producer with GPU offload
+ Description: A simple Dummy EDM Stream Producer with GPU offload
 
 */
 //
@@ -20,7 +20,7 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/one/EDProducer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -37,21 +37,21 @@
 //
 // class declaration
 //
-class DummyOneProducer : public edm::one::EDProducer<> {
+class DummyStreamProducer : public edm::stream::EDProducer<> {
 public:
     // some type aliasing
     using DataType = int;
 
     // ctor and dtor
-    explicit DummyOneProducer(const edm::ParameterSet&);
-    ~DummyOneProducer();
+    explicit DummyStreamProducer(const edm::ParameterSet&);
+    ~DummyStreamProducer();
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
     virtual void produce(edm::Event&, const edm::EventSetup&) override;
-    virtual void beginJob() override;
-    virtual void endJob() override;
+    virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+    virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
 
     // ----------member data ---------------------------
     cudaStream_t m_stream;
@@ -66,12 +66,19 @@ private:
 //
 // constructors and destructor
 //
-DummyOneProducer::DummyOneProducer(const edm::ParameterSet& iConfig)
+DummyStreamProducer::DummyStreamProducer(const edm::ParameterSet& iConfig)
 {
     //
     // get the size of vectors to be used
     //
-    m_size = iConfig.getUntrackedParameter<int>("size", 1000);
+    m_size = iConfig.getUntrackedParameter<int>("size");
+
+    // 
+    // allocate stuff on the host's side
+    //
+    m_ha = new DataType[m_size];
+    m_hb = new DataType[m_size];
+    m_hc = new DataType[m_size];
 
     //
     // Initialize the start/stop  Events
@@ -110,7 +117,7 @@ DummyOneProducer::DummyOneProducer(const edm::ParameterSet& iConfig)
 }
 
 
-DummyOneProducer::~DummyOneProducer()
+DummyStreamProducer::~DummyStreamProducer()
 {
     //
     // free memory on the host side
@@ -127,7 +134,7 @@ DummyOneProducer::~DummyOneProducer()
     cudaFree(m_dc);
 
     // 
-    // destroy Events and Ones
+    // destroy Events and Streams
     //
     cudaEventDestroy(m_estart);
     cudaEventDestroy(m_estop);
@@ -141,7 +148,7 @@ DummyOneProducer::~DummyOneProducer()
 
 // ------------ method called to produce the data  ------------
 void
-DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
+DummyStreamProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     //
     // initialize the values in the vector
@@ -198,17 +205,17 @@ DummyOneProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 }
 
 void
-DummyOneProducer::beginJob()
+DummyStreamProducer::beginRun(edm::Run const&, edm::EventSetup const&)
 {
 }
 
 void
-DummyOneProducer::endJob() {
+DummyStreamProducer::endRun(edm::Run const&, edm::EventSetup const&) {
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
-DummyOneProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+DummyStreamProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
@@ -217,4 +224,4 @@ DummyOneProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions)
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(DummyOneProducer);
+DEFINE_FWK_MODULE(DummyStreamProducer);

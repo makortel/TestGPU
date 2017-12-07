@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#define NUM_VALUES 10000
+namespace testgpu {
 
 //
 // Vector Addition Kernel
@@ -11,64 +11,43 @@ template<typename T>
 __global__
 void vectorAdd(T *a, T *b, T *c) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    c[i] = a[i] + b[i];
+    for (size_t j=0; j<10000000; j++)
+        c[i] = a[i] + b[i];
 }
-
-namespace testgpu {
 
 //
-// The following macros to simplify the template instantiation
+// Vector Addition Kernel Wrapper
 //
-#define ALLOCATE(NUM_OF_VALUES, TYPE) \
-    template void allocate<NUM_OF_VALUES, TYPE>(TYPE**)
-#define COPY(NUM_OF_VALUES, TYPE) \
-    template void copy<NUM_OF_VALUES, TYPE>(TYPE*, TYPE*, bool)
-#define WRAPPERVECTORADD(NUM_OF_VALUES, TYPE) \
-    template void wrapperVectorAdd<NUM_OF_VALUES, TYPE>(TYPE*, TYPE*, TYPE*)
-#define RELEASE(TYPE) \
-    template void release<TYPE>(TYPE*)
-
-template<int NUM_OF_VALUES, typename T>
-void allocate(T** values) {
-    cudaMalloc(values, NUM_OF_VALUES*sizeof(T));
-}
-
-// FIXME: can be put into a separate file
-ALLOCATE(10000, int);
-
-template<int NUM_OF_VALUES, typename T>
-void copy(T* h_values, T* d_values, bool direction) {
-    if (direction) 
-        cudaMemcpy(d_values, h_values, NUM_OF_VALUES*sizeof(T), cudaMemcpyHostToDevice);
-    else
-        cudaMemcpy(h_values, d_values, NUM_OF_VALUES*sizeof(T), cudaMemcpyDeviceToHost);
-}
-
-// FIXME: can be put into a separate file
-COPY(10000, int);
-
-template<int NUM_OF_VALUES, typename T>
-void wrapperVectorAdd(T* d_a, T* d_b, T* d_c) {
-    int threadsPerBlock {256};
-    int blocksPerGrid = (NUM_OF_VALUES + threadsPerBlock - 1) / threadsPerBlock;
-    vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c);
-}
-
-// FIXME: can be put into a separate file
-WRAPPERVECTORADD(10000, int);
-
 template<typename T>
-void release(T* d_values) {
-    cudaFree(d_values);
+void wrapperVectorAdd(T* d_a, T* d_b, T* d_c, cudaStream_t stream, int N) {
+    int threadsPerBlock {256};
+    int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    vectorAdd<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(d_a, d_b, d_c);
 }
 
-// FIXME: can be put into a separate file
-RELEASE(int);
+//
+// Macros to simplify the template instantiation
+//
+#define WRAPPERVECTORADD(TYPE) \
+    template void wrapperVectorAdd<TYPE>(TYPE*, TYPE*, TYPE*, cudaStream_t, int)
+
+//
+// NOTE:
+// -----
+// We have to instantiate tempaltes explicitly given that kernels will be compiled 
+// as separate compilation units and linked afterwards.
+// 
+//
+WRAPPERVECTORADD(int);
+WRAPPERVECTORADD(float);
+WRAPPERVECTORADD(double);
+WRAPPERVECTORADD(long);
 
 //
 // Standalone function that allocates/copies/launches/frees and prints the results
 //
 void launch_on_gpu() {
+    int const NUM_VALUES = 10000;
     printf("start launch_on_gpu\n");
     int h_a[NUM_VALUES], h_b[NUM_VALUES], h_c[NUM_VALUES];
     for (auto i=0; i<NUM_VALUES; i++) {
