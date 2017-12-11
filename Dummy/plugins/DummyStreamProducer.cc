@@ -57,6 +57,8 @@ private:
     cudaStream_t m_stream;
     cudaEvent_t m_estart, m_estop;
 
+    bool m_isPinned;
+
     int m_size;
     DataType *m_ha, *m_hb, *m_hc;
     DataType *m_da, *m_db, *m_dc;
@@ -73,12 +75,23 @@ DummyStreamProducer::DummyStreamProducer(const edm::ParameterSet& iConfig)
     //
     m_size = iConfig.getUntrackedParameter<int>("size");
 
+    //
+    // should we use pinned memory
+    //
+    m_isPinned = iConfig.getUntrackedParameter<bool>("isPinned");
+
     // 
     // allocate stuff on the host's side
     //
-    m_ha = new DataType[m_size];
-    m_hb = new DataType[m_size];
-    m_hc = new DataType[m_size];
+    if (m_isPinned) {
+        cudaHostAlloc((void**)&m_ha, m_size * sizeof(DataType), cudaHostAllocDefault);
+        cudaHostAlloc((void**)&m_hb, m_size * sizeof(DataType), cudaHostAllocDefault);
+        cudaHostAlloc((void**)&m_hc, m_size * sizeof(DataType), cudaHostAllocDefault);
+    } else {
+        m_ha = new DataType[m_size];
+        m_hb = new DataType[m_size];
+        m_hc = new DataType[m_size];
+    }
 
     //
     // Initialize the start/stop  Events
@@ -122,9 +135,15 @@ DummyStreamProducer::~DummyStreamProducer()
     //
     // free memory on the host side
     //
-    delete [] m_ha;
-    delete [] m_hb;
-    delete [] m_hc;
+    if (m_isPinned) {
+        cudaFreeHost(m_ha);
+        cudaFreeHost(m_hb);
+        cudaFreeHost(m_hc);
+    } else {
+        delete [] m_ha;
+        delete [] m_hb;
+        delete [] m_hc;
+    }
 
     //
     // free just once at destruction
