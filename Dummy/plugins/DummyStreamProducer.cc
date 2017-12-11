@@ -180,7 +180,7 @@ DummyStreamProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     // record the start of event
     //
-    cudaEventRecord(m_estart, 0);
+    cudaEventRecord(m_estart, m_stream);
 
     // 
     // Perform memcpy

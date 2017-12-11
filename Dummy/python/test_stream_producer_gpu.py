@@ -22,7 +22,7 @@ process.MessageLogger = cms.Service("MessageLogger",
 #
 # 10 events max to process
 #
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(20) )
 
 #
 # Nothing to read -> empty source
@@ -33,8 +33,8 @@ process.source = cms.Source("EmptySource")
 # Declare an edm::stream producer to put into the pipeline
 #
 process.testGPU = cms.EDProducer('DummyStreamProducer',
-    size = cms.untracked.int32(1000000),
-    isPinned = cms.untracked.bool(False)
+    size = cms.untracked.int32(10000),
+    isPinned = cms.untracked.bool(True)
 )
 
 #
