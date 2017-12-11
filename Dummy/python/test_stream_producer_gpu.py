@@ -34,7 +34,7 @@ process.source = cms.Source("EmptySource")
 #
 process.testGPU = cms.EDProducer('DummyStreamProducer',
     size = cms.untracked.int32(10000),
-    isPinned = cms.untracked.bool(True)
+    isPinned = cms.untracked.bool(False)
 )
 
 #
