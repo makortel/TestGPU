@@ -209,7 +209,7 @@ DummyStreamProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     //
     // Record the stop
     //
-    cudaEventRecord(m_estop, 0);
+    cudaEventRecord(m_estop, m_stream);
     cudaEventSynchronize(m_estop);
     float elapsedTime {0.0};
     cudaEventElapsedTime(&elapsedTime, m_estart, m_estop);
