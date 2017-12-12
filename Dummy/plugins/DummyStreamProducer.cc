@@ -115,18 +115,6 @@ DummyStreamProducer::DummyStreamProducer(const edm::ParameterSet& iConfig)
     // Let the framework know that we are going to put Vector into the event
     //
     produces<testgpu::Vector<DataType> >("VectorForGPU");
-
-/* Examples
-   produces<ExampleData2>();
-
-   //if do put with a label
-   produces<ExampleData2>("label");
- 
-   //if you want to put into the Run
-   produces<ExampleData2,InRun>();
-*/
-   //now do what ever other initialization is needed
-  
 }
 
 

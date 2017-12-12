@@ -34,6 +34,7 @@ process.source = cms.Source("EmptySource")
 #
 process.testGPU = cms.EDProducer('DummyStreamProducer',
     size = cms.untracked.int32(10000),
+    # allocates the data as Page-Locked
     isPinned = cms.untracked.bool(True)
 )
 
