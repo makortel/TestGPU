@@ -76,7 +76,7 @@ private:
   edm::EDGetTokenT<TestProxyProduct> srcToken_;
 
   // to mimic external task worker interface
-  void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder) override;
+  void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTask) override;
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 };
 
@@ -93,7 +93,7 @@ TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::Parame
   produces<TestProxyProduct>();
 }
 
-void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTask) {
+void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   int input = 0;
   if(!srcToken_.isUninitialized()) {
     edm::Handle<TestProxyProduct> hint;
@@ -103,7 +103,7 @@ void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm
 
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
   edm::Service<AcceleratorService> acc;
-  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()));
+  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
 }
 

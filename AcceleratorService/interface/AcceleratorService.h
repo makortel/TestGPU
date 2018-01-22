@@ -2,6 +2,7 @@
 #define TestGPU_AcceleratorService_AcceleratorService_h
 
 #include "FWCore/Utilities/interface/StreamID.h"
+#include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
 
 #include "TestGPU/AcceleratorService/interface/AcceleratorTask.h"
 
@@ -34,7 +35,7 @@ public:
 
   Token book(); // TODO: better name, unfortunately 'register' is a reserved keyword...
 
-  void async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task);
+  void async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task, edm::WaitingTaskWithArenaHolder waitingTaskHolder);
 
   const AcceleratorTaskBase& getTask(Token token, edm::StreamID streamID) const;
 

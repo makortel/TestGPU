@@ -62,25 +62,28 @@ AcceleratorService::Token AcceleratorService::book() {
   return Token(index);
 }
 
-void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task) {
-  // not really async but let's "simulate"
-
+void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
   tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)] = std::move(task);
-  auto asyncThread = std::thread([=](){
-      if(isGPUAvailable()) {
+  auto asyncThread = std::thread([isGPUAvailable = this->isGPUAvailable(),
+                                  token = token,
+                                  streamID = streamID,
+                                  &task = tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)],
+                                  waitingTaskHolder = std::move(waitingTaskHolder)](){
+      if(isGPUAvailable) {
         edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
-        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_GPUCuda();
-        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_copyToCPU_GPUCuda();
+        task->call_run_GPUCuda();
+        task->call_copyToCPU_GPUCuda();
         edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
       }
       else {
         edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
-        tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)]->call_run_CPU();
+        task->call_run_CPU();
         edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
       }
     });
 
+  /*
   std::random_device r;
   std::mt19937 gen(r());
   auto dist = std::uniform_real_distribution<>(0.1, 5.0); 
@@ -89,6 +92,7 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_
   std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
   asyncThread.join();
   edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " async finished";
+  */
 }
 
 const AcceleratorTaskBase& AcceleratorService::getTask(Token token, edm::StreamID streamID) const {
