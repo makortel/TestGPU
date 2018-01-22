@@ -1,0 +1,4 @@
+<lcgdict>
+    <class name="TestProxyProduct" persistent="false"/>
+    <class name="edm::Wrapper<TestProxyProduct>" persistent="false"/>
+</lcgdict>
