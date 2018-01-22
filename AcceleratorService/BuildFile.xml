@@ -3,7 +3,7 @@
 <use name="FWCore/ParameterSet"/>
 <use name="FWCore/MessageLogger"/>
 <use name="DataFormats/Provenance"/>
-<use name="root">
+<use name="root"/>
 
 <export>
     <lib name="1"/>
