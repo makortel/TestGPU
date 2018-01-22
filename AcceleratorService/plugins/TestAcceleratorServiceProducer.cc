@@ -26,7 +26,7 @@ namespace {
       std::mt19937 gen(r());
       auto dist = std::uniform_real_distribution<>(1.0, 3.0); 
       auto dur = dist(gen);
-      edm::LogPrint("Foo") << "    Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
+      edm::LogPrint("Foo") << "   Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
 
       output_ = input_ + streamId_*100 + eventId_;
     }
@@ -36,13 +36,13 @@ namespace {
       std::mt19937 gen(r());
       auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
       auto dur = dist(gen);
-      edm::LogPrint("Foo") << "    Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
+      edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
 
       gpuOutput_ = input_ + streamId_*100 + eventId_;
     }
 
     void copyToCPU_GPUCuda() override {
-      edm::LogPrint("Foo") << "    Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " copying to CPU";
+      edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " copying to CPU";
       output_ = gpuOutput_;
     }
 
@@ -62,7 +62,7 @@ namespace {
   };
 }
 
-class TestAcceleratorServiceProducer: public edm::stream::EDProducer<> {
+class TestAcceleratorServiceProducer: public edm::stream::EDProducer<edm::ExternalWork> {
 public:
   explicit TestAcceleratorServiceProducer(edm::ParameterSet const& iConfig);
   ~TestAcceleratorServiceProducer() = default;
@@ -76,15 +76,8 @@ private:
   edm::EDGetTokenT<TestProxyProduct> srcToken_;
 
   // to mimic external task worker interface
-  void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup);
-  void produceReal(edm::Event& iEvent, const edm::EventSetup& iSetup);
-
-  virtual void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override {
-    edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
-    acquire(iEvent, iSetup);
-    produceReal(iEvent, iSetup);
-    edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << "\n";
-  }
+  void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder) override;
+  void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 };
 
 
@@ -100,7 +93,7 @@ TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::Parame
   produces<TestProxyProduct>();
 }
 
-void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTask) {
   int input = 0;
   if(!srcToken_.isUninitialized()) {
     edm::Handle<TestProxyProduct> hint;
@@ -108,18 +101,18 @@ void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm
     input = hint->value();
   }
 
-  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " input " << input;
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
   edm::Service<AcceleratorService> acc;
   acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()));
-  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID();
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
 }
 
-void TestAcceleratorServiceProducer::produceReal(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::produceReal begin event " << iEvent.id().event() << " stream " << iEvent.streamID();
+void TestAcceleratorServiceProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
   edm::Service<AcceleratorService> acc;
   auto value = dynamic_cast<const ::TestTask&>(acc->getTask(accToken_, iEvent.streamID())).getOutput();
   auto ret = std::make_unique<TestProxyProduct>(value);
-  edm::LogPrint("Foo") << " TestAcceleratorServiceProducer::produceReal end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " result " << value;
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " result " << value;
   iEvent.put(std::move(ret));
 }
 
