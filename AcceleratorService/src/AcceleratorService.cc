@@ -62,37 +62,28 @@ AcceleratorService::Token AcceleratorService::book() {
   return Token(index);
 }
 
-void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
+void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> taskPtr, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
-  tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)] = std::move(task);
-  auto asyncThread = std::thread([isGPUAvailable = this->isGPUAvailable(),
-                                  token = token,
-                                  streamID = streamID,
-                                  &task = tasks_[tokenStreamIdsToDataIndex(token.id(), streamID)],
-                                  waitingTaskHolder = std::move(waitingTaskHolder)](){
-      if(isGPUAvailable) {
-        edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
-        task->call_run_GPUCuda();
-        task->call_copyToCPU_GPUCuda();
-        edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
-      }
-      else {
-        edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
-        task->call_run_CPU();
-        edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
-      }
-    });
-
-  /*
-  std::random_device r;
-  std::mt19937 gen(r());
-  auto dist = std::uniform_real_distribution<>(0.1, 5.0); 
-  auto dur = dist(gen);
-  edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " doing something else for some time (" << dur << " seconds)";
-  std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
-  asyncThread.join();
-  edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " async finished";
-  */
+  const auto index = tokenStreamIdsToDataIndex(token.id(), streamID);
+  tasks_[index] = std::move(taskPtr);
+  auto& task = *(tasks_[index]);
+  if(isGPUAvailable()) {
+    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
+    task.call_run_GPUCuda([waitingTaskHolder = std::move(waitingTaskHolder),
+                           &token = token,
+                           streamID = streamID,
+                           &task = task](){
+                            edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " computations finished on GPU";
+                            task.call_copyToCPU_GPUCuda();
+                            edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
+      });
+    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launched task on GPU asynchronously";
+  }
+  else {
+    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
+    task.call_run_CPU();
+    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
+  }
 }
 
 const AcceleratorTaskBase& AcceleratorService::getTask(Token token, edm::StreamID streamID) const {

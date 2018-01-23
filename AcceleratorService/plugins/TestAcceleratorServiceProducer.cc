@@ -10,9 +10,10 @@
 
 #include "TestGPU/AcceleratorService/interface/TestProxyProduct.h"
 
-#include <thread>
-#include <random>
 #include <chrono>
+#include <future>
+#include <random>
+#include <thread>
 
 namespace {
   class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
@@ -27,18 +28,25 @@ namespace {
       auto dist = std::uniform_real_distribution<>(1.0, 3.0); 
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "   Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
+      std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
 
       output_ = input_ + streamId_*100 + eventId_;
     }
 
-    void run_GPUCuda() override {
+    void run_GPUCuda(std::function<void()> callback) override {
       std::random_device r;
       std::mt19937 gen(r());
       auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
-
-      gpuOutput_ = input_ + streamId_*100 + eventId_;
+      std::async(std::launch::async,
+                 [this, dur,
+                  callback = std::move(callback)
+                  ](){
+                   std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
+                   gpuOutput_ = input_ + streamId_*100 + eventId_;
+                   callback();
+                 });
     }
 
     void copyToCPU_GPUCuda() override {

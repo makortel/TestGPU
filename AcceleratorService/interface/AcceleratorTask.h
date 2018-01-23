@@ -1,6 +1,8 @@
 #ifndef TestGPU_AcceleratorService_AcceleratorTask_h
 #define TestGPU_AcceleratorService_AcceleratorTask_h
 
+#include <functional>
+
 class AcceleratorTaskBase {
 public:
   AcceleratorTaskBase() = default;
@@ -13,7 +15,7 @@ public:
 
   // GPU functions
   virtual bool runnable_GPUCuda() const { return false; }
-  virtual void call_run_GPUCuda() {}
+  virtual void call_run_GPUCuda(std::function<void()> callback) {} // do not call the callback without implementation
   virtual void call_copyToCPU_GPUCuda() {}
 };
 
@@ -64,15 +66,15 @@ namespace accelerator {
       bool runnable_GPUCuda() const override { return true; }
 
     private:
-      void call_run_GPUCuda() override {
-        run_GPUCuda();
+      void call_run_GPUCuda(std::function<void()> callback) override {
+        run_GPUCuda(std::move(callback));
       };
 
       void call_copyToCPU_GPUCuda() override {
         copyToCPU_GPUCuda();
       };
 
-      virtual void run_GPUCuda() = 0;
+      virtual void run_GPUCuda(std::function<void()> callback) = 0;
       virtual void copyToCPU_GPUCuda() = 0;
     };
   }
