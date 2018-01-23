@@ -68,7 +68,8 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, accelerator:
   const auto index = tokenStreamIdsToDataIndex(token.id(), streamID);
   tasks_[index] = std::move(taskPtr);
   auto task = tasks_[index].get();
-  if(preferredResource == accelerator::Capabilities::kGPUCuda && isGPUAvailable()) {
+  const auto gpuAvail = isGPUAvailable();
+  if(preferredResource == accelerator::Capabilities::kGPUCuda && gpuAvail) {
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
     task->call_run_GPUCuda([waitingTaskHolder = std::move(waitingTaskHolder),
                             token = token,
@@ -80,6 +81,9 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, accelerator:
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launched task on GPU asynchronously";
   }
   else {
+    if(preferredResource == accelerator::Capabilities::kGPUCuda) {
+      edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " preferred GPU but it was not available";
+    }
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
     task->call_run_CPU();
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
