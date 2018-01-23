@@ -10,12 +10,17 @@
 
 #include "TestGPU/AcceleratorService/interface/TestProxyProduct.h"
 
+#include "tbb/concurrent_vector.h"
+
 #include <chrono>
 #include <future>
 #include <random>
 #include <thread>
 
 namespace {
+  // hack for GPU mock
+  tbb::concurrent_vector<std::future<void> > pendingFutures;
+
   class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
   public:
     TestTask(int input, unsigned int eventId, unsigned int streamId):
@@ -39,14 +44,15 @@ namespace {
       auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
-      std::async(std::launch::async,
-                 [this, dur,
-                  callback = std::move(callback)
-                  ](){
-                   std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
-                   gpuOutput_ = input_ + streamId_*100 + eventId_;
-                   callback();
-                 });
+      auto ret = std::async(std::launch::async,
+                            [this, dur,
+                             callback = std::move(callback)
+                             ](){
+                              std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
+                              gpuOutput_ = input_ + streamId_*100 + eventId_;
+                              callback();
+                            });
+      pendingFutures.push_back(std::move(ret));
     }
 
     void copyToCPU_GPUCuda() override {

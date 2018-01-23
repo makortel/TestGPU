@@ -6,9 +6,9 @@
 
 #include "TestGPU/AcceleratorService/interface/AcceleratorTask.h"
 
-#include <vector>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <vector>
 
 namespace edm {
   class ParameterSet;

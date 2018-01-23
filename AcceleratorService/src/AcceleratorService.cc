@@ -66,22 +66,23 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_
   edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
   const auto index = tokenStreamIdsToDataIndex(token.id(), streamID);
   tasks_[index] = std::move(taskPtr);
-  auto& task = *(tasks_[index]);
+  auto task = tasks_[index].get();
   if(isGPUAvailable()) {
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
-    task.call_run_GPUCuda([waitingTaskHolder = std::move(waitingTaskHolder),
-                           &token = token,
-                           streamID = streamID,
-                           &task = task](){
-                            edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " computations finished on GPU";
-                            task.call_copyToCPU_GPUCuda();
-                            edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
-      });
+    task->call_run_GPUCuda([waitingTaskHolder = std::move(waitingTaskHolder),
+                            token = token,
+                            streamID = streamID,
+                            task = task]() mutable {
+                             edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " computations finished on GPU";
+                             task->call_copyToCPU_GPUCuda();
+                             edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
+                             waitingTaskHolder.doneWaiting(nullptr);
+                           });
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launched task on GPU asynchronously";
   }
   else {
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on CPU";
-    task.call_run_CPU();
+    task->call_run_CPU();
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on CPU";
   }
 }
