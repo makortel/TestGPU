@@ -3,21 +3,6 @@
 
 #include <functional>
 
-class AcceleratorTaskBase {
-public:
-  AcceleratorTaskBase() = default;
-  virtual ~AcceleratorTaskBase() = 0;
-
-  // CPU functions
-  virtual bool runnable_CPU() const { return false; }
-  virtual void call_run_CPU() {}
-
-
-  // GPU functions
-  virtual bool runnable_GPUCuda() const { return false; }
-  virtual void call_run_GPUCuda(std::function<void()> callback) {} // do not call the callback without implementation
-};
-
 namespace accelerator {
   // Below we could assume that the CPU would be always present. For
   // the sake of demonstration I'll keep it separate entity.
@@ -34,7 +19,27 @@ namespace accelerator {
       kGPUCuda = 2
     };
   }
+}
 
+// Task base class
+class AcceleratorTaskBase {
+public:
+  AcceleratorTaskBase() = default;
+  virtual ~AcceleratorTaskBase() = 0;
+
+  virtual accelerator::Capabilities preferredDevice() const = 0;
+
+  // CPU functions
+  virtual bool runnable_CPU() const { return false; }
+  virtual void call_run_CPU() {}
+
+
+  // GPU functions
+  virtual bool runnable_GPUCuda() const { return false; }
+  virtual void call_run_GPUCuda(std::function<void()> callback) {} // do not call the callback without implementation
+};
+
+namespace accelerator {
   // similar to e.g. FWCore/Framework/interface/one/moduleAbilities.h
   struct CPU {
     static constexpr Capabilities kCapability = Capabilities::kCPU;

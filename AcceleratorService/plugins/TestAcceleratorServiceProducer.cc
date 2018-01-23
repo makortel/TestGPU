@@ -21,11 +21,22 @@ namespace {
   // hack for GPU mock
   tbb::concurrent_vector<std::future<void> > pendingFutures;
 
+  using OutputType = HeterogeneousProduct<unsigned int, unsigned int>;
+
   class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
   public:
-    TestTask(int input, unsigned int eventId, unsigned int streamId):
+    TestTask(const OutputType *input, unsigned int eventId, unsigned int streamId):
       input_(input), eventId_(eventId), streamId_(streamId) {}
     ~TestTask() override = default;
+
+    accelerator::Capabilities preferredDevice() const override {
+      if(input_ == nullptr || input_->isProductOn(HeterogeneousLocation::kGPU)) {
+        return accelerator::Capabilities::kGPUCuda;
+      }
+      else {
+        return accelerator::Capabilities::kCPU;
+      }
+    }
 
     void run_CPU() override {
       std::random_device r;
@@ -35,7 +46,9 @@ namespace {
       edm::LogPrint("Foo") << "   Task (CPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
       std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
 
-      output_ = input_ + streamId_*100 + eventId_;
+      auto input = input_ ? input_->getCPUProduct() : 0U;
+
+      output_ = input + streamId_*100 + eventId_;
     }
 
     void run_GPUCuda(std::function<void()> callback) override {
@@ -45,13 +58,14 @@ namespace {
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
       ranOnGPU_ = true;
+      auto input = input_ ? input_->getGPUProduct() : 0U;
 
       auto ret = std::async(std::launch::async,
-                            [this, dur,
+                            [this, dur, input,
                              callback = std::move(callback)
                              ](){
                               std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
-                              gpuOutput_ = input_ + streamId_*100 + eventId_;
+                              gpuOutput_ = input + streamId_*100 + eventId_;
                               callback();
                             });
       pendingFutures.push_back(std::move(ret));
@@ -70,7 +84,7 @@ namespace {
 
   private:
     // input
-    int input_;
+    const OutputType *input_;
     unsigned int eventId_;
     unsigned int streamId_;
 
@@ -92,8 +106,6 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  using OutputType = HeterogeneousProduct<unsigned int, unsigned int>;
-
   std::string label_;
   AcceleratorService::Token accToken_;
 
@@ -118,26 +130,16 @@ TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::Parame
 }
 
 void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
-  bool preferGPU = true;
-  unsigned int input = 0;
+  const OutputType *input = nullptr;
   if(!srcToken_.isUninitialized()) {
     edm::Handle<OutputType> hin;
     iEvent.getByToken(srcToken_, hin);
-    const auto& in = *hin;
-    if(in.isProductOn(HeterogeneousLocation::kGPU)) {
-      input = in.getCPUProduct();
-    }
-    else {
-      preferGPU = false;
-      input = in.getCPUProduct();
-    }
+    input = hin.product();
   }
 
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
   edm::Service<AcceleratorService> acc;
-  acc->async(accToken_, iEvent.streamID(),
-             preferGPU ? accelerator::Capabilities::kGPUCuda : accelerator::Capabilities::kCPU,
-             std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
+  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
 }
 
