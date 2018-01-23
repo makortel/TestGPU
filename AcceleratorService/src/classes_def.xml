@@ -1,4 +1,4 @@
 <lcgdict>
-    <class name="TestProxyProduct" persistent="false"/>
-    <class name="edm::Wrapper<TestProxyProduct>" persistent="false"/>
+    <class name="HeterogeneousProduct<unsigned int, unsigned int>" persistent="false"/>
+    <class name="edm::Wrapper<HeterogeneousProduct<unsigned int, unsigned int> >" persistent="false"/>
 </lcgdict>

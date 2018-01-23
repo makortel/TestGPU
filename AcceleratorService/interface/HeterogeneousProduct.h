@@ -31,6 +31,21 @@ public:
     location_.set(static_cast<unsigned int>(HeterogeneousLocation::kGPU));
   }
 
+
+  void swap(HeterogeneousProduct& other) {
+    if(this == &other)
+      return;
+
+    std::lock(mutex_, other.mutex_);
+    std::lock_guard<std::mutex> lk1(mutex_, std::adopt_lock);
+    std::lock_guard<std::mutex> lk2(other.mutex_, std::adopt_lock);
+
+    std::swap(cpuProduct_, other.cpuProduct_);
+    std::swap(gpuProduct_, other.gpuProduct_);
+    std::swap(location_, other.location_);
+    std::swap(transfer_, other.transfer_);
+  }
+
   bool isProductOn(HeterogeneousLocation loc) const {
     return location_[static_cast<unsigned int>(loc)];
   }

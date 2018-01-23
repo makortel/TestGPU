@@ -16,7 +16,6 @@ public:
   // GPU functions
   virtual bool runnable_GPUCuda() const { return false; }
   virtual void call_run_GPUCuda(std::function<void()> callback) {} // do not call the callback without implementation
-  virtual void call_copyToCPU_GPUCuda() {}
 };
 
 namespace accelerator {
@@ -70,12 +69,7 @@ namespace accelerator {
         run_GPUCuda(std::move(callback));
       };
 
-      void call_copyToCPU_GPUCuda() override {
-        copyToCPU_GPUCuda();
-      };
-
       virtual void run_GPUCuda(std::function<void()> callback) = 0;
-      virtual void copyToCPU_GPUCuda() = 0;
     };
   }
 

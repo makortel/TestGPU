@@ -1,8 +1,8 @@
 #include "DataFormats/Common/interface/Wrapper.h"
-#include "TestGPU/AcceleratorService/interface/TestProxyProduct.h"
+#include "TestGPU/AcceleratorService/interface/HeterogeneousProduct.h"
 
 namespace {
     struct dictionary {
-      TestProxyProduct tpp;
+      HeterogeneousProduct<unsigned int, unsigned int> hpuu;
     };
 }

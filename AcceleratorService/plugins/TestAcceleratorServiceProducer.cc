@@ -8,7 +8,7 @@
 #include "TestGPU/AcceleratorService/interface/AcceleratorService.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
-#include "TestGPU/AcceleratorService/interface/TestProxyProduct.h"
+#include "TestGPU/AcceleratorService/interface/HeterogeneousProduct.h"
 
 #include "tbb/concurrent_vector.h"
 
@@ -44,6 +44,8 @@ namespace {
       auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
       auto dur = dist(gen);
       edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
+      ranOnGPU_ = true;
+
       auto ret = std::async(std::launch::async,
                             [this, dur,
                              callback = std::move(callback)
@@ -55,18 +57,24 @@ namespace {
       pendingFutures.push_back(std::move(ret));
     }
 
-    void copyToCPU_GPUCuda() override {
-      edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " copying to CPU";
-      output_ = gpuOutput_;
+    auto makeTransfer() const {
+      return [this](const unsigned int& src, unsigned int& dst) {
+        edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " copying to CPU";
+        dst = src;
+      };
     }
 
+    bool ranOnGPU() const { return ranOnGPU_; }
     unsigned int getOutput() const { return output_; }
+    unsigned int getGPUOutput() const { return gpuOutput_; }
 
   private:
     // input
     int input_;
     unsigned int eventId_;
     unsigned int streamId_;
+
+    bool ranOnGPU_ = false;
 
     // simulating GPU memory
     unsigned int gpuOutput_;
@@ -84,10 +92,12 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
+  using OutputType = HeterogeneousProduct<unsigned int, unsigned int>;
+
   std::string label_;
   AcceleratorService::Token accToken_;
 
-  edm::EDGetTokenT<TestProxyProduct> srcToken_;
+  edm::EDGetTokenT<OutputType> srcToken_;
 
   // to mimic external task worker interface
   void acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTask) override;
@@ -101,31 +111,51 @@ TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::Parame
 {
   auto srcTag = iConfig.getParameter<edm::InputTag>("src");
   if(!srcTag.label().empty()) {
-    srcToken_ = consumes<TestProxyProduct>(srcTag);
+    srcToken_ = consumes<OutputType>(srcTag);
   }
 
-  produces<TestProxyProduct>();
+  produces<OutputType>();
 }
 
 void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
-  int input = 0;
+  bool preferGPU = true;
+  unsigned int input = 0;
   if(!srcToken_.isUninitialized()) {
-    edm::Handle<TestProxyProduct> hint;
-    iEvent.getByToken(srcToken_, hint);
-    input = hint->value();
+    edm::Handle<OutputType> hin;
+    iEvent.getByToken(srcToken_, hin);
+    const auto& in = *hin;
+    if(in.isProductOn(HeterogeneousLocation::kGPU)) {
+      input = in.getCPUProduct();
+    }
+    else {
+      preferGPU = false;
+      input = in.getCPUProduct();
+    }
   }
 
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
   edm::Service<AcceleratorService> acc;
-  acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
+  acc->async(accToken_, iEvent.streamID(),
+             preferGPU ? accelerator::Capabilities::kGPUCuda : accelerator::Capabilities::kCPU,
+             std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
 }
 
 void TestAcceleratorServiceProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
   edm::Service<AcceleratorService> acc;
-  auto value = dynamic_cast<const ::TestTask&>(acc->getTask(accToken_, iEvent.streamID())).getOutput();
-  auto ret = std::make_unique<TestProxyProduct>(value);
+  const auto& task = dynamic_cast<const ::TestTask&>(acc->getTask(accToken_, iEvent.streamID()));
+  std::unique_ptr<OutputType> ret;
+  unsigned int value = 0;
+  if(task.ranOnGPU()) {
+    ret = std::make_unique<OutputType>(task.getGPUOutput(), task.makeTransfer());
+    value = ret->getGPUProduct();
+  }
+  else {
+    ret = std::make_unique<OutputType>(task.getOutput());
+    value = ret->getCPUProduct();
+  }
+
   edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " result " << value;
   iEvent.put(std::move(ret));
 }

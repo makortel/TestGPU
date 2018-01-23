@@ -62,19 +62,18 @@ AcceleratorService::Token AcceleratorService::book() {
   return Token(index);
 }
 
-void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> taskPtr, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
+void AcceleratorService::async(Token token, edm::StreamID streamID, accelerator::Capabilities preferredResource,
+                               std::unique_ptr<AcceleratorTaskBase> taskPtr, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   edm::LogPrint("Foo") << " AcceleratorService token " << token.id() << " stream " << streamID << " launching thread";
   const auto index = tokenStreamIdsToDataIndex(token.id(), streamID);
   tasks_[index] = std::move(taskPtr);
   auto task = tasks_[index].get();
-  if(isGPUAvailable()) {
+  if(preferredResource == accelerator::Capabilities::kGPUCuda && isGPUAvailable()) {
     edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launching task on GPU";
     task->call_run_GPUCuda([waitingTaskHolder = std::move(waitingTaskHolder),
                             token = token,
                             streamID = streamID,
                             task = task]() mutable {
-                             edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " computations finished on GPU";
-                             task->call_copyToCPU_GPUCuda();
                              edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
                              waitingTaskHolder.doneWaiting(nullptr);
                            });

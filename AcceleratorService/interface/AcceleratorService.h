@@ -35,7 +35,8 @@ public:
 
   Token book(); // TODO: better name, unfortunately 'register' is a reserved keyword...
 
-  void async(Token token, edm::StreamID streamID, std::unique_ptr<AcceleratorTaskBase> task, edm::WaitingTaskWithArenaHolder waitingTaskHolder);
+  void async(Token token, edm::StreamID streamID, accelerator::Capabilities preferredResource,
+             std::unique_ptr<AcceleratorTaskBase> task, edm::WaitingTaskWithArenaHolder waitingTaskHolder);
 
   const AcceleratorTaskBase& getTask(Token token, edm::StreamID streamID) const;
 
