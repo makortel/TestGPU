@@ -107,10 +107,7 @@ unsigned int AcceleratorService::tokenStreamIdsToDataIndex(unsigned int tokenId,
 }
 
 bool AcceleratorService::isGPUAvailable() const {
-  std::random_device r;
-  std::mt19937 gen(r());
-  auto dist1 = std::uniform_int_distribution<>(0, 1); // simulate the scheduler decision
-  return dist1(gen) == 0;
+  return true;
 }
 
 // for the macros

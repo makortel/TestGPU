@@ -30,7 +30,14 @@ namespace {
     ~TestTask() override = default;
 
     accelerator::Capabilities preferredDevice() const override {
-      if(input_ == nullptr || input_->isProductOn(HeterogeneousLocation::kGPU)) {
+      if(input_ == nullptr) {
+        // Without input decide randomly whether to run on GPU or CPU to simulate scheduler decisions
+        std::random_device r;
+        std::mt19937 gen(r());
+        auto dist1 = std::uniform_int_distribution<>(0, 1); // simulate the scheduler decision
+        return dist1(gen) == 0 ? accelerator::Capabilities::kGPUCuda : accelerator::Capabilities::kCPU;
+      }
+      else if(input_->isProductOn(HeterogeneousLocation::kGPU)) {
         return accelerator::Capabilities::kGPUCuda;
       }
       else {
