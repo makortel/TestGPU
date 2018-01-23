@@ -2,3 +2,10 @@
   <use name="cppunit"/>
   <use name="TestGPU/AcceleratorService"/>
 </bin>
+<library file="TestAcceleratorServiceProducer.cc" name="TestGPUAcceleratorServiceTest">
+  <flags EDM_PLUGIN="1"/>
+  <use name="FWCore/Framework"/>
+  <use name="FWCore/PluginManager"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="TestGPU/AcceleratorService"/>
+</library>
