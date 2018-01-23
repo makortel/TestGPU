@@ -98,10 +98,10 @@ namespace {
   };
 }
 
-class TestAcceleratorServiceProducer: public edm::stream::EDProducer<edm::ExternalWork> {
+class TestAcceleratorServiceProducerGPUMock: public edm::stream::EDProducer<edm::ExternalWork> {
 public:
-  explicit TestAcceleratorServiceProducer(edm::ParameterSet const& iConfig);
-  ~TestAcceleratorServiceProducer() = default;
+  explicit TestAcceleratorServiceProducerGPUMock(edm::ParameterSet const& iConfig);
+  ~TestAcceleratorServiceProducerGPUMock() = default;
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -117,7 +117,7 @@ private:
 };
 
 
-TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::ParameterSet& iConfig):
+TestAcceleratorServiceProducerGPUMock::TestAcceleratorServiceProducerGPUMock(const edm::ParameterSet& iConfig):
   label_(iConfig.getParameter<std::string>("@module_label")),
   accToken_(edm::Service<AcceleratorService>()->book())
 {
@@ -129,7 +129,7 @@ TestAcceleratorServiceProducer::TestAcceleratorServiceProducer(const edm::Parame
   produces<OutputType>();
 }
 
-void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
+void TestAcceleratorServiceProducerGPUMock::acquire(const edm::Event& iEvent, const edm::EventSetup& iSetup, edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   const OutputType *input = nullptr;
   if(!srcToken_.isUninitialized()) {
     edm::Handle<OutputType> hin;
@@ -137,14 +137,14 @@ void TestAcceleratorServiceProducer::acquire(const edm::Event& iEvent, const edm
     input = hin.product();
   }
 
-  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducerGPUMock::acquire begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " input " << input;
   edm::Service<AcceleratorService> acc;
   acc->async(accToken_, iEvent.streamID(), std::make_unique<::TestTask>(input, iEvent.id().event(), iEvent.streamID()), std::move(waitingTaskHolder));
-  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducerGPUMock::acquire end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
 }
 
-void TestAcceleratorServiceProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
+void TestAcceleratorServiceProducerGPUMock::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducerGPUMock::produce begin event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_;
   edm::Service<AcceleratorService> acc;
   const auto& task = dynamic_cast<const ::TestTask&>(acc->getTask(accToken_, iEvent.streamID()));
   std::unique_ptr<OutputType> ret;
@@ -158,14 +158,14 @@ void TestAcceleratorServiceProducer::produce(edm::Event& iEvent, const edm::Even
     value = ret->getCPUProduct();
   }
 
-  edm::LogPrint("Foo") << "TestAcceleratorServiceProducer::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " result " << value;
+  edm::LogPrint("Foo") << "TestAcceleratorServiceProducerGPUMock::produce end event " << iEvent.id().event() << " stream " << iEvent.streamID() << " label " << label_ << " result " << value;
   iEvent.put(std::move(ret));
 }
 
-void TestAcceleratorServiceProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+void TestAcceleratorServiceProducerGPUMock::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("src", edm::InputTag());
-  descriptions.add("testAcceleratorServiceProducer", desc);
+  descriptions.add("testAcceleratorServiceProducerGPUMock", desc);
 }
 
-DEFINE_FWK_MODULE(TestAcceleratorServiceProducer);
+DEFINE_FWK_MODULE(TestAcceleratorServiceProducerGPUMock);
