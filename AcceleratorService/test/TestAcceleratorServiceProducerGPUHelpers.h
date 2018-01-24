@@ -1,6 +1,6 @@
 #ifndef TestGPU_AcceleratorService_TestAcceleratorServiceProducerGPUHelpers
 #define TestGPU_AcceleratorService_TestAcceleratorServiceProducerGPUHelpers
 
-void TestAcceleratorServiceProducerGPUHelpers_simple_kernel();
+int TestAcceleratorServiceProducerGPUHelpers_simple_kernel();
 
 #endif

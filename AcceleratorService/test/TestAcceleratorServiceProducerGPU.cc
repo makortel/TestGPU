@@ -10,7 +10,7 @@
 
 #include "TestGPU/AcceleratorService/interface/HeterogeneousProduct.h"
 
-#include "TestAcceleratorServiceProducerGPUHelper.h"
+#include "TestAcceleratorServiceProducerGPUHelpers.h"
 
 #include "tbb/concurrent_vector.h"
 
