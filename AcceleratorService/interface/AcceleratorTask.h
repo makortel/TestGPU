@@ -10,13 +10,15 @@ namespace accelerator {
   // similar to FWCore/Framework/interface/moduleAbilityEnums.h
   enum class Capabilities {
     kCPU,
+    kGPUMock,
     kGPUCuda
   };
   
   namespace CapabilityBits {
     enum Bits {
       kCPU = 1,
-      kGPUCuda = 2
+      kGPUMock = 2,
+      kGPUCuda = 3
     };
   }
 }
@@ -33,6 +35,9 @@ public:
   virtual bool runnable_CPU() const { return false; }
   virtual void call_run_CPU() {}
 
+  // GPU mock functions to allow testing
+  virtual bool runnable_GPUMock() const { return false; }
+  virtual void call_run_GPUMock(std::function<void()> callback) {}
 
   // GPU functions
   virtual bool runnable_GPUCuda() const { return false; }
@@ -43,6 +48,10 @@ namespace accelerator {
   // similar to e.g. FWCore/Framework/interface/one/moduleAbilities.h
   struct CPU {
     static constexpr Capabilities kCapability = Capabilities::kCPU;
+  };
+
+  struct GPUMock {
+    static constexpr Capabilities kCapability = Capabilities::kGPUMock;
   };
 
   struct GPUCuda {
@@ -62,6 +71,19 @@ namespace accelerator {
       };
 
       virtual void run_CPU() = 0;
+    };
+
+    class GPUMock: public virtual AcceleratorTaskBase {
+    public:
+      GPUMock() = default;
+      bool runnable_GPUMock() const override { return true; }
+
+    private:
+      void call_run_GPUMock(std::function<void()> callback) override {
+        run_GPUMock(std::move(callback));
+      };
+
+      virtual void run_GPUMock(std::function<void()> callback) = 0;
     };
 
     class GPUCuda: public virtual AcceleratorTaskBase {
@@ -84,6 +106,11 @@ namespace accelerator {
   template<>
   struct CapabilityToImplementor<CPU> {
     using Type = impl::CPU;
+  };
+
+  template<>
+  struct CapabilityToImplementor<GPUMock> {
+    using Type = impl::GPUMock;
   };
 
   template<>
