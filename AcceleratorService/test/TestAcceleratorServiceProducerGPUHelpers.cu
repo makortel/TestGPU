@@ -1,12 +1,24 @@
 #include "TestAcceleratorServiceProducerGPUHelpers.h"
 
+//
+// Vector Addition Kernel
+//
+namespace {
+template<typename T>
+__global__
+void vectorAdd(T *a, T *b, T *c) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    c[i] = a[i] + b[i];
+}
+}
+
 int TestAcceleratorServiceProducerGPUHelpers_simple_kernel(int input) {
   // Example from Viktor
   constexpr int NUM_VALUES = 10000;
   
   int h_a[NUM_VALUES], h_b[NUM_VALUES], h_c[NUM_VALUES];
   for (auto i=0; i<NUM_VALUES; i++) {
-    h_a[i] = i;
+    h_a[i] = input + i;
     h_b[i] = i*i;
   }
 

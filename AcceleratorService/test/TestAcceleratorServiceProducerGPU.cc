@@ -12,8 +12,6 @@
 
 #include "TestAcceleratorServiceProducerGPUHelpers.h"
 
-#include "tbb/concurrent_vector.h"
-
 #include <chrono>
 #include <future>
 #include <random>
@@ -23,9 +21,6 @@
 #include <cuda_runtime.h>
 
 namespace {
-  // hack for GPU mock
-  tbb::concurrent_vector<std::future<void> > pendingFutures;
-
   using OutputType = HeterogeneousProduct<unsigned int, unsigned int>;
 
   class TestTask: public AcceleratorTask<accelerator::CPU, accelerator::GPUCuda> {
@@ -57,23 +52,13 @@ namespace {
     }
 
     void run_GPUCuda(std::function<void()> callback) override {
-      std::random_device r;
-      std::mt19937 gen(r());
-      auto dist = std::uniform_real_distribution<>(0.1, 1.0); 
-      auto dur = dist(gen);
-      edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " will take " << dur << " seconds";
-      ranOnGPU_ = true;
+      edm::LogPrint("Foo") << "   Task (GPU) for event " << eventId_ << " in stream " << streamId_ << " running on GPU synchronously";
       auto input = input_ ? input_->getGPUProduct() : 0U;
+      gpuOutput_ = TestAcceleratorServiceProducerGPUHelpers_simple_kernel(input);
+      edm::LogPrint("Foo") << "    Got " << gpuOutput_ << " from GPU kernel";
 
-      auto ret = std::async(std::launch::async,
-                            [this, dur, input,
-                             callback = std::move(callback)
-                             ](){
-                              std::this_thread::sleep_for(std::chrono::seconds(1)*dur);
-                              gpuOutput_ = input + streamId_*100 + eventId_;
-                              callback();
-                            });
-      pendingFutures.push_back(std::move(ret));
+      ranOnGPU_ = true;
+      callback();
     }
 
     auto makeTransfer() const {

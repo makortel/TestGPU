@@ -77,7 +77,7 @@ void AcceleratorService::async(Token token, edm::StreamID streamID, std::unique_
                              edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " task finished on GPU";
                              waitingTaskHolder.doneWaiting(nullptr);
                            });
-    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launched task on GPU asynchronously";
+    edm::LogPrint("Foo") << "  AcceleratorService token " << token.id() << " stream " << streamID << " launched task on GPU asynchronously(?)";
   }
   else {
     if(task->preferredDevice() == accelerator::Capabilities::kGPUCuda) {
