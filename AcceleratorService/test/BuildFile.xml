@@ -9,10 +9,11 @@
   <use name="FWCore/ParameterSet"/>
   <use name="TestGPU/AcceleratorService"/>
 </library>
-<library file="TestAcceleratorServiceProducerGPU.cc" name="TestGPUAcceleratorServiceTestGPU">
+<library file="TestAcceleratorServiceProducerGPU.cc TestAcceleratorServiceProducerGPUHelpers.cu" name="TestGPUAcceleratorServiceTestGPU">
   <flags EDM_PLUGIN="1"/>
   <use name="FWCore/Framework"/>
   <use name="FWCore/PluginManager"/>
   <use name="FWCore/ParameterSet"/>
   <use name="TestGPU/AcceleratorService"/>
+  <use name="cuda"/>
 </library>

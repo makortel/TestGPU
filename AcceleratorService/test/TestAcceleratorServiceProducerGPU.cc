@@ -10,12 +10,17 @@
 
 #include "TestGPU/AcceleratorService/interface/HeterogeneousProduct.h"
 
+#include "TestAcceleratorServiceProducerGPUHelpers.h"
+
 #include "tbb/concurrent_vector.h"
 
 #include <chrono>
 #include <future>
 #include <random>
 #include <thread>
+
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 namespace {
   // hack for GPU mock
